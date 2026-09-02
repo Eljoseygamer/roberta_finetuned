@@ -7,7 +7,7 @@ from transformers import RobertaTokenizer, RobertaForSequenceClassification
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'shared'))
 from utils import load_input, write_predictions
 
-MODEL_NAME = os.environ.get('MODEL_PATH', 'eljosey40/roberta-finetuned-pan26-voightkampff')
+MODEL_DIR = os.path.join(os.path.dirname(__file__), 'model')
 BATCH_SIZE = 32
 MAX_LEN = 512
 
@@ -21,25 +21,30 @@ def predict(texts, model, tokenizer, device):
                         padding=True, return_tensors='pt').to(device)
         with torch.no_grad():
             logits = model(**enc).logits
-        probs = torch.softmax(logits, dim=-1)[:, 1].cpu().numpy()
+        probs = torch.softmax(logits, dim=-1)[:, 1].float().cpu().numpy()
         scores.extend(probs.tolist())
     return scores
 
 
 def main():
-    input_file = sys.argv[1]
-    output_dir = sys.argv[2]
+    input_dir = os.environ.get('inputDataset') or (sys.argv[1] if len(sys.argv) > 1 else '/tira-data/input')
+    output_dir = os.environ.get('outputDir') or (sys.argv[2] if len(sys.argv) > 2 else '/tira-data/output')
+
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
     print(f'Device: {device}')
-    print(f'Loading model from {MODEL_NAME}...')
-    tokenizer = RobertaTokenizer.from_pretrained(MODEL_NAME)
-    model = RobertaForSequenceClassification.from_pretrained(MODEL_NAME).to(device)
+    print(f'Loading model from {MODEL_DIR}...')
+    tokenizer = RobertaTokenizer.from_pretrained(MODEL_DIR, local_files_only=True)
+    model = RobertaForSequenceClassification.from_pretrained(MODEL_DIR, local_files_only=True).to(device)
+    model.eval()
+
     print('Loading test data...')
-    items = load_input(input_file)
+    items = load_input(input_dir)
     ids = [x[0] for x in items]
     texts = [x[1] for x in items]
+
     scores = predict(texts, model, tokenizer, device)
     write_predictions(output_dir, ids, scores)
+    print('Done.')
 
 
 if __name__ == '__main__':
