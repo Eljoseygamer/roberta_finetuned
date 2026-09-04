@@ -12,4 +12,4 @@ RUN python3 -m pip config set global.break-system-packages true \
 COPY shared/ shared/
 COPY model/ model/
 COPY predict.py .
-CMD ["python3", "predict.py"]
+ENTRYPOINT ["python3", "predict.py", "$inputDataset", "$outputDir"]
