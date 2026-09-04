@@ -66,5 +66,5 @@ def write_predictions(output_dir, ids, scores):
     with open(out_path, 'w') as f:
         for id_, score in zip(ids, scores):
             value = round(float(score), 4)
-            f.write(json.dumps({'id': id_, 'label': value, 'score': value}) + '\n')
+            f.write(json.dumps({'id': id_, 'score': value}) + '\n')
     print(f'Written {len(ids)} predictions to {out_path}')
